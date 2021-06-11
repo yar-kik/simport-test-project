@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+    api:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        ports:
+            - "5000:5000"
+        command: python -m gunicorn --workers 3 --bind 0.0.0.0:5000 wsgi:app
+        environment:
+            - FlASK_APP=wsgi.py
+            - FLASK_ENV=production
+            - PROD_DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+        volumes:
+            - ./:/api
+        depends_on:
+            - db
+            - migration
+
+    db:
+        image: postgres
+        environment:
+            - POSTGRES_DB=postgres
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+        ports:
+            - "5432:5432"
+        volumes:
+            - ./database:/api/database
+
+    migration:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        command: python -m flask db upgrade
+        environment:
+            - FLASK_ENV=production
+            - PROD_DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+        volumes:
+            - ./:/api
+        depends_on:
+            - db
+
+    nginx:
+        build:
+            context: ./nginx
+            dockerfile: Dockerfile
+        ports:
+            - 80:80
+        depends_on:
+            - api

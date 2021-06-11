@@ -1,0 +1,10 @@
+language: python
+python:
+  - "3.8"
+install:
+  - pip install -r requirements.txt
+  - pip install coveralls
+script:
+  - coverage run --source="analytics/" -m unittest && coveralls
+  - coverage report --fail-under=80
+  - pylint analytics/ --ignore=migrations --rcfile=.pylintrc --fail-under=9
