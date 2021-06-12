@@ -35,9 +35,11 @@ class TimelineApi(Resource):
         """
         analytic_services = AnalyticsServices(
             db.session.query(func.min(Event.timestamp).label("date"),
-                             count(Event.timestamp)
-                             .label("count")), request.args)
-        events = analytic_services.apply_grouping().db_query
-        data = [{"date": timestamp_to_date(event.date),
-                 "value": event.count} for event in events.all()]
+                             count(Event.timestamp).label("count")),
+            request.args)  # TODO: move to services
+        data = analytic_services \
+            .apply_date_interval() \
+            .apply_filters() \
+            .apply_grouping() \
+            .apply_type()
         return {"timeline": data}

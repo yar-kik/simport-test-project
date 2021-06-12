@@ -2,6 +2,7 @@
 from datetime import datetime
 from typing import Dict
 
+from sqlalchemy import and_
 from sqlalchemy.orm import Query
 from werkzeug.datastructures import MultiDict
 
@@ -22,9 +23,16 @@ FILTERS = {
 
 def timestamp_to_date(timestamp: int) -> str:
     """
-    Convert timestamp to human-readable format
+    Convert timestamp to human-readable format.
     """
     return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
+
+
+def date_to_timestamp(date: str) -> int:
+    """
+    Convert date to timestamp in seconds.
+    """
+    return int(datetime.strptime(date, '%Y-%m-%d').timestamp())
 
 
 class AnalyticsServices:
@@ -49,16 +57,46 @@ class AnalyticsServices:
             filters[attribute] = values
         return filters
 
+    def apply_date_interval(self):
+        """
+        Apply start and end date.
+        """
+        start_date = self.search_query.get("startDate")
+        end_date = self.search_query.get("endDate")
+        if start_date and end_date:
+            self.db_query = self.db_query.filter(
+                and_(date_to_timestamp(start_date) <= Event.timestamp,
+                     date_to_timestamp(end_date) >= Event.timestamp))
+        return self
+
+    def apply_filters(self):
+        """
+        Apply type (cumulative or usual).
+        """
+        for event_filter in self.search_query:
+            if event_filter in FILTERS:
+                self.db_query = self.db_query.filter(
+                    FILTERS[event_filter].in_(
+                        self.search_query.getlist(event_filter)))
+        return self
+
     def apply_type(self):
         """
-        Apply type (cumulative or usual) by query parameters.
+        Apply type (cumulative or usual) and return result.
         """
+        data = []
+        value = 0
         event_type = self.search_query.get("Type")
-        if event_type == "cumulative":
-            self.db_query = self.db_query
-        if event_type == "usual":
-            self.db_query = self.db_query
-        return self
+        # TODO: make more readable
+        for event in self.db_query.all():
+            if event_type == "cumulative":
+                value += event.count
+                data.append({"date": timestamp_to_date(event.date),
+                             "value": value})
+            else:
+                data.append({"date": timestamp_to_date(event.date),
+                             "value": event.count})
+        return data
 
     def apply_grouping(self):
         """
