@@ -17,7 +17,7 @@ class Event(db.Model):
 
     def __str__(self):
         date = datetime.fromtimestamp(self.timestamp).strftime('%Y-%m-%d')
-        return f"Event - {self.brand} ({date})"
+        return f"Event <{self.brand}> ({date})"
 
     def save(self):
         """Save entity to database"""
