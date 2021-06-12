@@ -13,15 +13,11 @@ class Event(db.Model):
     brand = db.Column(db.String(100))
     source = db.Column(db.String(100))
     stars = db.Column(db.SmallInteger)
-    timestamp = db.Column(db.Date)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        timestamp = int(kwargs.get("timestamp"))
-        self.timestamp = datetime.fromtimestamp(timestamp)
+    timestamp = db.Column(db.Integer)
 
     def __str__(self):
-        return f"Event - {self.brand} ({self.timestamp.strftime('%Y-%m-%d')})"
+        date = datetime.fromtimestamp(self.timestamp).strftime('%Y-%m-%d')
+        return f"Event - {self.brand} ({date})"
 
     def save(self):
         """Save entity to database"""
