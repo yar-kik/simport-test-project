@@ -1,4 +1,4 @@
-"""Module for managing application"""
+"""Module to run the application"""
 
 import os
 from utils import create_app

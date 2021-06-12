@@ -10,7 +10,6 @@ class Config:
     """Base configurations"""
     SECRET_KEY = os.environ.get('SECRET_KEY', "hardtorememberstring")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SEARCH_RESULT_PER_PAGE = os.environ.get("SEARCH_RESULT_PER_PAGE", 5)
 
     @staticmethod
     def init_app(app):
