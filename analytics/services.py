@@ -2,8 +2,9 @@
 from datetime import datetime
 from typing import Dict
 
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Query
+from sqlalchemy.sql.functions import count
 from werkzeug.datastructures import MultiDict
 
 from analytics.models import Event
@@ -43,6 +44,9 @@ class AnalyticsServices:
     def __init__(self, db_query: Query,
                  search_query: MultiDict = None):
         self.db_query = db_query
+        self.event_values = self.db_query(
+            func.min(Event.timestamp).label("date"),
+            count(Event.timestamp).label("count"))
         self.search_query = search_query
 
     @property
@@ -64,7 +68,7 @@ class AnalyticsServices:
         start_date = self.search_query.get("startDate")
         end_date = self.search_query.get("endDate")
         if start_date and end_date:
-            self.db_query = self.db_query.filter(
+            self.event_values = self.event_values.filter(
                 and_(date_to_timestamp(start_date) <= Event.timestamp,
                      date_to_timestamp(end_date) >= Event.timestamp))
         return self
@@ -75,27 +79,25 @@ class AnalyticsServices:
         """
         for event_filter in self.search_query:
             if event_filter in FILTERS:
-                self.db_query = self.db_query.filter(
+                self.event_values = self.event_values.filter(
                     FILTERS[event_filter].in_(
                         self.search_query.getlist(event_filter)))
         return self
 
-    def apply_type(self):
+    def apply_type_and_return_result(self):
         """
         Apply type (cumulative or usual) and return result.
         """
         data = []
         value = 0
         event_type = self.search_query.get("Type")
-        # TODO: make more readable
-        for event in self.db_query.all():
+        for event in self.event_values.all():
             if event_type == "cumulative":
                 value += event.count
-                data.append({"date": timestamp_to_date(event.date),
-                             "value": value})
             else:
-                data.append({"date": timestamp_to_date(event.date),
-                             "value": event.count})
+                value = event.count
+            data.append({"date": timestamp_to_date(event.date),
+                         "value": value})
         return data
 
     def apply_grouping(self):
@@ -104,6 +106,6 @@ class AnalyticsServices:
         """
         event_grouping = self.search_query.get("Grouping")
         if event_grouping in GROUPING:
-            self.db_query = self.db_query. \
+            self.event_values = self.event_values. \
                 group_by(Event.timestamp / GROUPING[event_grouping])
         return self

@@ -1,10 +1,8 @@
 """Module for analytics controllers (views)"""
 from flask import request
 from flask_restful import Resource
-from sqlalchemy.sql.functions import count, func
 
-from analytics.models import Event
-from analytics.services import AnalyticsServices, timestamp_to_date
+from analytics.services import AnalyticsServices
 from utils import db
 
 
@@ -33,13 +31,10 @@ class TimelineApi(Resource):
         Number of events with applied type, grouping, filters,
         and date range.
         """
-        analytic_services = AnalyticsServices(
-            db.session.query(func.min(Event.timestamp).label("date"),
-                             count(Event.timestamp).label("count")),
-            request.args)  # TODO: move to services
+        analytic_services = AnalyticsServices(db.session.query, request.args)
         data = analytic_services \
             .apply_date_interval() \
             .apply_filters() \
             .apply_grouping() \
-            .apply_type()
+            .apply_type_and_return_result()
         return {"timeline": data}
