@@ -68,9 +68,9 @@ class AnalyticsServices:
         start_date = self.search_query.get("startDate")
         end_date = self.search_query.get("endDate")
         if start_date and end_date:
-            self.event_values = self.event_values.filter(
-                and_(date_to_timestamp(start_date) <= Event.timestamp,
-                     date_to_timestamp(end_date) >= Event.timestamp))
+            self.event_values = self.event_values\
+                .filter(and_(date_to_timestamp(start_date) <= Event.timestamp,
+                             date_to_timestamp(end_date) >= Event.timestamp))
         return self
 
     def apply_filters(self):
@@ -106,6 +106,7 @@ class AnalyticsServices:
         """
         event_grouping = self.search_query.get("Grouping")
         if event_grouping in GROUPING:
-            self.event_values = self.event_values. \
-                group_by(Event.timestamp / GROUPING[event_grouping])
+            self.event_values = self.event_values\
+                .group_by(Event.timestamp / GROUPING[event_grouping])\
+                .order_by(Event.timestamp / GROUPING[event_grouping])
         return self
